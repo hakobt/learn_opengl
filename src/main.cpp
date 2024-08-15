@@ -1,25 +1,16 @@
+#include <fstream>
 #include <glad.h>
 #include <glfw3.h>
 #include <iostream>
+#include <sstream>
+#include <string>
+
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
 void processInput(GLFWwindow *window);
 
-void render();
-
-const char *vertexShaderSource = "#version 330 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-    "}\0";
-const char *fragmentShaderSource = "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "void main()\n"
-    "{\n"
-    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-    "}\n\0";
+const GLchar *readShaderFile(std::string const &filename);
 
 int main() {
   glfwInit();
@@ -29,8 +20,8 @@ int main() {
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-  GLFWwindow *window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
-  if (window == NULL) {
+  GLFWwindow *window = glfwCreateWindow(800, 600, "LearnOpenGL", nullptr, nullptr);
+  if (window == nullptr) {
     std::cout << "Failed to create GLFW window" << std::endl;
     glfwTerminate();
     return -1;
@@ -45,17 +36,61 @@ int main() {
   }
 
   const unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-  glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
+  // const auto vertexShaderSource = readShaderFile("default.vert");
+  const std::string fullPath = SHADERS_DIR "/default.vert";
+  std::cout << fullPath << std::endl;
+
+  std::ifstream file(fullPath);
+
+  std::stringstream ss;
+  ss << file.rdbuf();
+  std::string str = ss.str();
+  const GLchar* g = str.c_str();
+  auto vert = &g;
+  std::cout << vert << std::endl;
+  glShaderSource(vertexShader, 1, vert, nullptr);
   glCompileShader(vertexShader);
 
   const unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
+  const std::string fllPath = SHADERS_DIR "/default.frag";
+
+  std::ifstream f(fllPath);
+
+  std::stringstream s;
+  s << f.rdbuf();
+  std::string st = s.str();
+  const GLchar* b = st.c_str();
+  auto frag = &b;
+  std::cout << vert << std::endl;
+  glShaderSource(fragmentShader, 1, frag, nullptr);
   glCompileShader(fragmentShader);
+
+  // check for shader compile errors
+  int success;
+  char infoLog[512];
+  glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+  if (!success) {
+    glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+    std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+  }
+  glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+  if (!success) {
+    glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+    std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+  }
+
 
   const int program = glCreateProgram();
   glAttachShader(program, vertexShader);
   glAttachShader(program, fragmentShader);
   glLinkProgram(program);
+
+
+  glGetProgramiv(program, GL_LINK_STATUS, &success);
+  if (!success) {
+    glGetProgramInfoLog(program, 512, NULL, infoLog);
+    std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+  }
 
   glDeleteShader(vertexShader);
   glDeleteShader(fragmentShader);
@@ -89,7 +124,7 @@ int main() {
   glEnableVertexAttribArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
   while (!glfwWindowShouldClose(window)) {
     processInput(window);
@@ -113,10 +148,18 @@ int main() {
   return 0;
 }
 
+const GLchar *readShaderFile(std::string const &filename) {
+  const std::string fullPath = SHADERS_DIR "/" + filename;
+  std::cout << fullPath << std::endl;
 
-void render() {
-  unsigned int VBO;
-  glGenBuffers(1, &VBO);
+  std::ifstream file(fullPath);
+
+  std::stringstream ss;
+  ss << file.rdbuf();
+  std::string str = ss.str();
+  const GLchar* g = str.c_str();
+
+  return g;
 }
 
 void processInput(GLFWwindow *window) {
